@@ -1,0 +1,16 @@
+[package]
+name = "omnom"
+version = "1.0.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yoshuawuyts/omnom"
+documentation = "https://docs.rs/omnom"
+description = "Smaller, sillier version of the Nom parser."
+keywords = ["om", "nom", "omnom", "omnomnom", "omnomnomnom"]
+categories = ["parser-implementations"]
+authors = ["Yoshua Wuyts <yoshuawuyts@gmail.com>"]
+readme = "README.md"
+edition = "2018"
+
+[dependencies]
+
+[dev-dependencies]
