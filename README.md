@@ -1,7 +1,7 @@
 <h1 align="center">omnom</h1>
 <div align="center">
   <strong>
-    Smaller, sillier version of the Nom parser.
+    Streaming parser extensions for BufRead
   </strong>
 </div>
 

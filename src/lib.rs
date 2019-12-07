@@ -1,6 +1,6 @@
-//! Smaller, sillier version of the Nom parser.
+//! Streaming parser extensions for `BufRead`.
 //!
-//! This is a one-off experiment to see if we can extend the `Read` and `Write`
+//! This is a one-off experiment to see if we can extend the `std::io::BufRead`
 //! traits with better parsing capabilities. The name is a riff on the
 //! [`nom`](https://docs.rs/nom) parser, which you should probably check out.
 //!
@@ -14,6 +14,26 @@
 //! predicate.
 //!
 //! Together this should make it easier to parse bytes from streams.
+//!
+//! # Methods
+//!
+//! Methods prefixed with `fill_` don't [`consume`] bytes. This means that in order to move the
+//! `BufRead` cursor forward, the `consume` method needs to be called. This means the same bytes
+//! can be read multiple times.
+//!
+//! Methods prefixed with `read_` *do* `consume` bytes. This means when this method is called, the
+//! cursor moves forward, which means the same bytes *cannot* be read multiple times.
+//!
+//! - [`BufReadExt::fill_exact`] reads bytes until a buffer has been filled, doesn't consume bytes.
+//! - [`BufReadExt::fill_until`] reads bytes until a byte has been encountered, doesn't consume bytes.
+//! - [`BufReadExt::fill_while`] reads bytes based on a predicate, doesn't consume bytes.
+//! - [`BufReadExt::read_while`] reads bytes based on a predicate, consumes bytes.
+//!
+//! [`consume`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
+//! [`BufReadExt::fill_exact`]: trait.BufReadExt.html#method.fill_exact
+//! [`BufReadExt::fill_until`]: trait.BufReadExt.html#method.fill_until
+//! [`BufReadExt::fill_while`]: trait.BufReadExt.html#method.fill_while
+//! [`BufReadExt::read_while`]: trait.BufReadExt.html#method.read_while
 //!
 //! # Todos
 //!
@@ -81,22 +101,41 @@ pub trait BufReadExt: BufRead {
     /// If any other read error is encountered then this function immediately
     /// returns. Any bytes which have already been read will be appended to
     /// `buf`.
-    fn read_while<P>(&mut self, buf: &mut [u8], mut predicate: P) -> io::Result<usize>
+    ///
+    /// # Examples
+    ///
+    /// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+    /// this example, we use [`Cursor`] to read bytes in a byte slice until
+    /// we encounter a hyphen:
+    ///
+    /// ```
+    /// use std::io::{self, BufRead};
+    /// use omnom::prelude::*;
+    ///
+    /// let mut cursor = io::Cursor::new(b"lorem-ipsum");
+    /// let mut buf = vec![];
+    ///
+    /// let num_bytes = cursor.read_while(&mut buf, |b| b != b'-')
+    ///     .expect("reading from cursor won't fail");
+    /// assert_eq!(buf, b"lorem");
+    /// ```
+    fn read_while<P>(&mut self, buf: &mut Vec<u8>, mut predicate: P) -> io::Result<usize>
     where
         P: FnMut(u8) -> bool,
     {
         let mut read = 0;
 
-        while read < buf.len() {
+        loop {
             let mut byte = 0;
 
             match self.read(slice::from_mut(&mut byte)) {
                 Ok(0) => break,
                 Ok(_) => {
-                    read += 1;
                     if predicate(byte) {
-                        buf[read] = byte;
+                        buf.extend_from_slice(&[byte]);
+                        read += 1;
                     } else {
+                        read += 1;
                         break;
                     }
                 }
@@ -130,23 +169,45 @@ pub trait BufReadExt: BufRead {
     /// If any other read error is encountered then this function immediately
     /// returns. Any bytes which have already been read will be appended to
     /// `buf`.
-    fn fill_while<P>(&mut self, buf: &mut [u8], mut predicate: P) -> io::Result<usize>
+    ///
+    /// # Examples
+    ///
+    /// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+    /// this example, we use [`Cursor`] to read bytes in a byte slice until
+    /// we encounter a hyphen:
+    ///
+    /// [`Cursor`]: https://doc.rust-lang.org/std/io/struct.Cursor.html
+    ///
+    /// ```
+    /// use std::io::{self, BufRead};
+    /// use omnom::prelude::*;
+    ///
+    /// let mut cursor = io::Cursor::new(b"lorem-ipsum");
+    /// let mut buf = vec![];
+    ///
+    /// let num_bytes = cursor.fill_while(&mut buf, |b| b != b'-')
+    ///     .expect("reading from cursor won't fail");
+    /// assert_eq!(buf, b"lorem");
+    /// cursor.consume(num_bytes);
+    /// ```
+    fn fill_while<P>(&mut self, buf: &mut Vec<u8>, mut predicate: P) -> io::Result<usize>
     where
         Self: Read,
         P: FnMut(u8) -> bool,
     {
         let mut read = 0;
 
-        while read < buf.len() {
+        loop {
             let mut byte = 0;
 
             match self.read(slice::from_mut(&mut byte)) {
                 Ok(0) => break,
                 Ok(_) => {
-                    read += 1;
                     if predicate(byte) {
-                        buf[read] = byte;
+                        buf.extend_from_slice(&[byte]);
+                        read += 1;
                     } else {
+                        read += 1;
                         break;
                     }
                 }
