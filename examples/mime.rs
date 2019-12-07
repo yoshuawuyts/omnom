@@ -55,24 +55,22 @@ fn parse_mime(s: &str) -> Option<Mime> {
     //      ^^^^^
     // ```
     let mut sub_type = vec![];
-    let read = s.read_until(b';', &mut sub_type).unwrap();
-    if read == 0 {
-        return None;
-    }
-    if sub_type[sub_type.len() - 1] == b';' {
-        sub_type.pop();
-    }
+    match s.read_until(b';', &mut sub_type).unwrap() {
+        0 => return None,
+        _ => sub_type.pop(),
+    };
     if !validate_code_points(&sub_type) {
         return None;
     }
 
+    // instantiate our mime struct
     let mut mime = Mime {
         base_type: String::from_utf8(base_type).unwrap(),
         sub_type: String::from_utf8(sub_type).unwrap(),
         parameters: None,
     };
 
-    // Parse parameters into a hashmap.
+    // parse parameters into a hashmap
     //
     // ```txt
     // text/html; charset=utf-8;
@@ -126,7 +124,6 @@ fn parse_mime(s: &str) -> Option<Mime> {
         //                    ^^^^^^
         // ```
         let mut param_value = vec![];
-
         match s.read_until(b';', &mut param_value).unwrap() {
             0 => return None,
             _ => param_value.pop(),
@@ -141,7 +138,6 @@ fn parse_mime(s: &str) -> Option<Mime> {
         if let None = mime.parameters {
             mime.parameters = Some(HashMap::new());
         }
-
         mime.parameters
             .as_mut()
             .unwrap()
