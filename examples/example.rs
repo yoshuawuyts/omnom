@@ -9,7 +9,7 @@ fn main() {
 
     // cursor is at 'l'
     let num_bytes = cursor
-        .try_read_until(b'-', &mut buf)
+        .fill_until(b'-', &mut buf)
         .expect("reading from cursor won't fail");
     cursor.consume(6);
     assert_eq!(buf, b"lorem-");
@@ -18,7 +18,7 @@ fn main() {
 
     // cursor is at 'i'
     let num_bytes = cursor
-        .try_read_until(b'-', &mut buf)
+        .fill_until(b'-', &mut buf)
         .expect("reading from cursor won't fail");
     cursor.consume(5);
     assert_eq!(buf, b"ipsum");
@@ -27,7 +27,7 @@ fn main() {
 
     // cursor is at EOF
     let num_bytes = cursor
-        .try_read_until(b'-', &mut buf)
+        .fill_until(b'-', &mut buf)
         .expect("reading from cursor won't fail");
     assert_eq!(num_bytes, 0);
     assert_eq!(buf, b"");

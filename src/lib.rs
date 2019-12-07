@@ -4,10 +4,52 @@
 //! traits with better parsing capabilities. The name is a riff on the
 //! [`nom`](https://docs.rs/nom) parser, which you should probably check out.
 //!
+//! # Why?
+//!
+//! The purpose of this crate is to make authoring streaming parsers easier. And
+//! the way we do this is by providing more operations that decouple
+//! "looking at bytes" from "consuming bytes". So hence we introduce `fill_`
+//! counterparts for `read_until` and `read_exact`. And two new methods:
+//! `read_while` and `fill_while` that read bytes into a buffer based on a
+//! predicate.
+//!
+//! Together this should make it easier to parse bytes from streams.
+//!
+//! # Todos
+//!
+//! - `AsyncRead` support
+//! - [byte-ordered reads/writes](https://github.com/async-rs/async-std/issues/578)
+//!
 //! # Examples
 //!
 //! ```
+//! use std::io::{self, BufRead};
 //! use omnom::prelude::*;
+//!
+//! let mut cursor = io::Cursor::new(b"lorem-ipsum");
+//! let mut buf = vec![];
+//!
+//! // cursor is at 'l'
+//! let num_bytes = cursor.fill_until(b'-', &mut buf)
+//!     .expect("reading from cursor won't fail");
+//! assert_eq!(buf, b"lorem-");
+//! assert_eq!(num_bytes, 6);
+//! cursor.consume(num_bytes);
+//! buf.clear();
+//!
+//! // cursor is at 'i'
+//! let num_bytes = cursor.fill_until(b'-', &mut buf)
+//!     .expect("reading from cursor won't fail");
+//! assert_eq!(buf, b"ipsum");
+//! assert_eq!(num_bytes, 5);
+//! cursor.consume(num_bytes);
+//! buf.clear();
+//!
+//! // cursor is at EOF
+//! let num_bytes = cursor.fill_until(b'-', &mut buf)
+//!     .expect("reading from cursor won't fail");
+//! assert_eq!(num_bytes, 0);
+//! assert_eq!(buf, b"");
 //! ```
 
 #![forbid(unsafe_code, future_incompatible, rust_2018_idioms)]
@@ -88,7 +130,7 @@ pub trait BufReadExt: BufRead {
     /// If any other read error is encountered then this function immediately
     /// returns. Any bytes which have already been read will be appended to
     /// `buf`.
-    fn try_read_while<P>(&mut self, buf: &mut [u8], mut predicate: P) -> io::Result<usize>
+    fn fill_while<P>(&mut self, buf: &mut [u8], mut predicate: P) -> io::Result<usize>
     where
         Self: Read,
         P: FnMut(u8) -> bool,
@@ -154,7 +196,7 @@ pub trait BufReadExt: BufRead {
     /// let mut buf = vec![];
     ///
     /// // cursor is at 'l'
-    /// let num_bytes = cursor.try_read_until(b'-', &mut buf)
+    /// let num_bytes = cursor.fill_until(b'-', &mut buf)
     ///     .expect("reading from cursor won't fail");
     /// assert_eq!(buf, b"lorem-");
     /// assert_eq!(num_bytes, 6);
@@ -162,7 +204,7 @@ pub trait BufReadExt: BufRead {
     /// buf.clear();
     ///
     /// // cursor is at 'i'
-    /// let num_bytes = cursor.try_read_until(b'-', &mut buf)
+    /// let num_bytes = cursor.fill_until(b'-', &mut buf)
     ///     .expect("reading from cursor won't fail");
     /// assert_eq!(buf, b"ipsum");
     /// assert_eq!(num_bytes, 5);
@@ -170,12 +212,12 @@ pub trait BufReadExt: BufRead {
     /// buf.clear();
     ///
     /// // cursor is at EOF
-    /// let num_bytes = cursor.try_read_until(b'-', &mut buf)
+    /// let num_bytes = cursor.fill_until(b'-', &mut buf)
     ///     .expect("reading from cursor won't fail");
     /// assert_eq!(num_bytes, 0);
     /// assert_eq!(buf, b"");
     /// ```
-    fn try_read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> io::Result<usize> {
+    fn fill_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> io::Result<usize> {
         let mut read = 0;
         loop {
             let available = match self.fill_buf() {
@@ -202,6 +244,86 @@ pub trait BufReadExt: BufRead {
                 return Ok(read);
             }
         }
+    }
+
+    /// Read the exact number of bytes required to fill `buf`.
+    ///
+    /// This function reads as many bytes as necessary to completely fill the
+    /// specified buffer `buf`.
+    ///
+    /// Unlike `read_exact`, after reading bytes through this method you'll
+    /// have to manually call [`BufRead::consume`].
+    ///
+    /// No guarantees are provided about the contents of `buf` when this
+    /// function is called, implementations cannot rely on any property of the
+    /// contents of `buf` being true. It is recommended that implementations
+    /// only write data to `buf` instead of reading its contents.
+    ///
+    /// # Errors
+    ///
+    /// If this function encounters an error of the kind
+    /// [`ErrorKind::Interrupted`] then the error is ignored and the operation
+    /// will continue.
+    ///
+    /// If this function encounters an "end of file" before completely filling
+    /// the buffer, it returns an error of the kind [`ErrorKind::UnexpectedEof`].
+    /// The contents of `buf` are unspecified in this case.
+    ///
+    /// If any other read error is encountered then this function immediately
+    /// returns. The contents of `buf` are unspecified in this case.
+    ///
+    /// If this function returns an error, it is unspecified how many bytes it
+    /// has read, but it will never read more than would be necessary to
+    /// completely fill the buffer.
+    ///
+    /// # Examples
+    ///
+    /// [`File`]s implement `Read`:
+    ///
+    /// [`File`]: https://doc.rust-lang.org/std/fs/struct.File.html
+    /// [`ErrorKind::Interrupted`]: https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.Interrupted
+    /// [`ErrorKind::UnexpectedEof`]: https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.UnexpectedEof
+    /// [`ErrorKind::UnexpectedEof`]: ../../std/io/enum.ErrorKind.html#variant.UnexpectedEof
+    ///
+    /// ```no_run
+    /// use std::io::{self, BufReader};
+    /// use std::io::prelude::*;
+    /// use std::fs::File;
+    /// use omnom::prelude::*;
+    ///
+    /// let mut cursor = io::Cursor::new(b"lorem-ipsum");
+    /// let mut buf = vec![0; 5];
+    ///
+    /// // read exactly 5 bytes
+    /// cursor.fill_exact(&mut buf).unwrap();
+    /// assert_eq!(buf, b"lorem");
+    /// buf.clear();
+    ///
+    /// // the same bytes can be read again
+    /// cursor.fill_exact(&mut buf).unwrap();
+    /// assert_eq!(buf, b"lorem");
+    /// buf.clear();
+    /// cursor.consume(5);
+    ///
+    /// // after consuming bytes we read new bytes
+    /// cursor.fill_exact(&mut buf).unwrap();
+    /// assert_eq!(buf, b"-ipsu");
+    /// ```
+    fn fill_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        loop {
+            let available = match self.fill_buf() {
+                Ok(n) => n,
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+
+            if available.len() >= buf.len() {
+                buf.copy_from_slice(&available[..buf.len()]);
+                break;
+            }
+        }
+
+        Ok(())
     }
 }
 
