@@ -82,6 +82,7 @@ use std::slice;
 /// The `omnom` prelude.
 pub mod prelude {
     pub use crate::BufReadExt;
+    pub use crate::ReadExt;
 }
 
 /// Extend `BufRead` with methods for streaming parsing.
@@ -389,3 +390,53 @@ pub trait BufReadExt: BufRead {
 }
 
 impl<T: BufRead> BufReadExt for T {}
+
+/// Extensions to the `Read` trait.
+pub trait ReadExt: Read {
+    /// Skip the first `n` bytes.
+    fn skip(&mut self, n: usize) -> io::Result<()> {
+        let mut read = 0;
+
+        while read < n {
+            let mut byte = 0;
+            match self.read(slice::from_mut(&mut byte)) {
+                Ok(0) => break,
+                Ok(_) => {
+                    read += 1;
+                    continue;
+                }
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+        }
+        Ok(())
+    }
+
+    /// Skip bytes while the predicate is true.
+    fn skip_while<P>(&mut self, mut predicate: P) -> io::Result<usize>
+    where
+        P: FnMut(u8) -> bool,
+    {
+        let mut read = 0;
+
+        loop {
+            let mut byte = 0;
+
+            match self.read(slice::from_mut(&mut byte)) {
+                Ok(0) => break,
+                Ok(_) => {
+                    if predicate(byte) {
+                        read += 1;
+                    } else {
+                        break;
+                    }
+                }
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+        }
+        Ok(read)
+    }
+}
+
+impl<T: Read> ReadExt for T {}
