@@ -82,7 +82,6 @@ use std::slice;
 /// The `omnom` prelude.
 pub mod prelude {
     pub use crate::BufReadExt;
-    pub use crate::ReadExt;
 }
 
 /// Extend `BufRead` with methods for streaming parsing.
@@ -126,26 +125,29 @@ pub trait BufReadExt: BufRead {
     {
         let mut read = 0;
 
-        loop {
-            let mut byte = 0;
-
-            match self.read(slice::from_mut(&mut byte)) {
-                Ok(0) => break,
-                Ok(_) => {
-                    if predicate(byte) {
-                        buf.extend_from_slice(&[byte]);
-                        read += 1;
-                    } else {
-                        read += 1;
-                        break;
-                    }
-                }
+        'outer: loop {
+            let available = match self.fill_buf() {
+                Ok(n) => n,
                 Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => {
                     self.consume(read);
                     return Err(e);
-                }
+                },
             };
+
+            if available.len() == 0 {
+                break;
+            }
+
+            for byte in available.bytes() {
+                let byte = byte?;
+                if predicate(byte) {
+                    buf.extend_from_slice(&[byte]);
+                    read += 1;
+                } else {
+                    break 'outer;
+                }
+            }
         }
 
         self.consume(read);
@@ -387,17 +389,25 @@ pub trait BufReadExt: BufRead {
 
         Ok(())
     }
-}
 
-impl<T: BufRead> BufReadExt for T {}
-
-/// Extensions to the `Read` trait.
-pub trait ReadExt: Read {
     /// Skip the first `n` bytes.
     fn skip(&mut self, n: usize) -> io::Result<()> {
         let mut read = 0;
 
         while read < n {
+            let available = match self.fill_buf() {
+                Ok(b) => b,
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+
+            if available.len() == 0 {
+                break;
+            } else {
+                self.consume(1);
+                read += 1;
+            }
+
             let mut byte = 0;
             match self.read(slice::from_mut(&mut byte)) {
                 Ok(0) => break,
@@ -409,6 +419,8 @@ pub trait ReadExt: Read {
                 Err(e) => return Err(e),
             };
         }
+
+        self.consume(read);
         Ok(())
     }
 
@@ -418,25 +430,25 @@ pub trait ReadExt: Read {
         P: FnMut(u8) -> bool,
     {
         let mut read = 0;
-
         loop {
-            let mut byte = 0;
-
-            match self.read(slice::from_mut(&mut byte)) {
-                Ok(0) => break,
-                Ok(_) => {
-                    if predicate(byte) {
-                        read += 1;
-                    } else {
-                        break;
-                    }
-                }
+            let available = match self.fill_buf() {
+                Ok(b) => b,
                 Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
                 Err(e) => return Err(e),
             };
+
+            if available.len() == 0 {
+                break;
+            } if predicate(available[0]) {
+                self.consume(1);
+                read += 1;
+            } else {
+                break;
+            }
         }
+
         Ok(read)
     }
 }
 
-impl<T: Read> ReadExt for T {}
+impl<T: BufRead> BufReadExt for T {}

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use std::io::{BufRead, Cursor};
 use omnom::prelude::*;
+use std::collections::HashMap;
+use std::io::{BufRead, Cursor, Read};
 
 fn main() {
     assert_eq!(
@@ -8,18 +8,18 @@ fn main() {
         Mime {
             base_type: "text".to_string(),
             sub_type: "html".to_string(),
-            attributes: None,
+            parameters: None,
         }
     );
 
-    let mut attributes = HashMap::new();
-    attributes.insert("charset".to_string(), "utf-8".to_string());
+    let mut parameters = HashMap::new();
+    parameters.insert("charset".to_string(), "utf-8".to_string());
     assert_eq!(
         parse_mime("text/html; charset=utf-8;").unwrap(),
         Mime {
             base_type: "text".to_string(),
             sub_type: "html".to_string(),
-            attributes: Some(attributes),
+            parameters: Some(parameters),
         }
     );
 }
@@ -28,23 +28,32 @@ fn main() {
 pub struct Mime {
     base_type: String,
     sub_type: String,
-    attributes: Option<HashMap<String, String>>,
+    parameters: Option<HashMap<String, String>>,
 }
 
 fn parse_mime(s: &str) -> Option<Mime> {
     // parse the "type"
+    //
+    // ```txt
+    // text/html; charset=utf-8;
+    // ^^^^^
+    // ```
     let mut s = Cursor::new(s);
     let mut base_type = vec![];
-    let read = s.read_until(b'/', &mut base_type).unwrap();
-    if read == 0 {
-        return None;
-    }
-    base_type.pop();
+    match s.read_until(b'/', &mut base_type).unwrap() {
+        0 => return None,
+        _ => base_type.pop(),
+    };
     if !validate_code_points(&base_type) {
         return None;
     }
 
     // parse the "subtype"
+    //
+    // ```txt
+    // text/html; charset=utf-8;
+    //      ^^^^^
+    // ```
     let mut sub_type = vec![];
     let read = s.read_until(b';', &mut sub_type).unwrap();
     if read == 0 {
@@ -60,10 +69,15 @@ fn parse_mime(s: &str) -> Option<Mime> {
     let mut mime = Mime {
         base_type: String::from_utf8(base_type).unwrap(),
         sub_type: String::from_utf8(sub_type).unwrap(),
-        attributes: None,
+        parameters: None,
     };
 
     // Parse parameters into a hashmap.
+    //
+    // ```txt
+    // text/html; charset=utf-8;
+    //           ^^^^^^^^^^^^^^^
+    // ```
     loop {
         // Stop parsing if there's no more bytes to consume.
         if s.fill_buf().unwrap().len() == 0 {
@@ -71,11 +85,22 @@ fn parse_mime(s: &str) -> Option<Mime> {
         }
 
         // Trim any whitespace.
+        //
+        // ```txt
+        // text/html; charset=utf-8;
+        //           ^
+        // ```
         s.skip_while(is_http_whitespace_char).unwrap();
 
         // Get the param name.
+        //
+        // ```txt
+        // text/html; charset=utf-8;
+        //            ^^^^^^^
+        // ```
         let mut param_name = vec![];
-        s.read_while(&mut param_name, |b| b != b';' && b != b'=').unwrap();
+        s.read_while(&mut param_name, |b| b != b';' && b != b'=')
+            .unwrap();
         let mut param_name = String::from_utf8(param_name).unwrap();
         param_name.make_ascii_lowercase();
         if !validate_code_points(&param_name.as_bytes()) {
@@ -83,20 +108,29 @@ fn parse_mime(s: &str) -> Option<Mime> {
         }
 
         // Ignore param names without values.
-        let buf = s.fill_buf().unwrap();
-        if buf.len() > 0 && buf[0] == b';' {
+        //
+        // ```txt
+        // text/html; charset=utf-8;
+        //                   ^
+        // ```
+        let mut token = vec![0; 1];
+        s.read_exact(&mut token).unwrap();
+        if token[0] == b';' {
             continue;
         }
 
         // Get the param value.
+        //
+        // ```txt
+        // text/html; charset=utf-8;
+        //                    ^^^^^^
+        // ```
         let mut param_value = vec![];
-        s.read_until(b';', &mut param_value).unwrap();
-        if read == 0 {
-            return None;
-        }
-        if param_value.len() > 0 && param_value[param_value.len() - 1] == b';' {
-            param_value.pop();
-        }
+
+        match s.read_until(b';', &mut param_value).unwrap() {
+            0 => return None,
+            _ => param_value.pop(),
+        };
         let mut param_value = String::from_utf8(param_value).unwrap();
         param_value.make_ascii_lowercase();
         if !validate_code_points(&param_value.as_bytes()) {
@@ -104,11 +138,14 @@ fn parse_mime(s: &str) -> Option<Mime> {
         }
 
         // Insert attribute pair into hashmap.
-        if let None = mime.attributes {
-            mime.attributes = Some(HashMap::new());
+        if let None = mime.parameters {
+            mime.parameters = Some(HashMap::new());
         }
 
-        mime.attributes.as_mut().unwrap().insert(param_name, param_value);
+        mime.parameters
+            .as_mut()
+            .unwrap()
+            .insert(param_name, param_value);
     }
 
     Some(mime)
