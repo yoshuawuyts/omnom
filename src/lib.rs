@@ -18,7 +18,9 @@ use std::io::{self, BufRead, ErrorKind, Read};
 use std::slice;
 
 /// The `omnom` prelude.
-pub mod prelude {}
+pub mod prelude {
+    pub use crate::BufReadExt;
+}
 
 /// Extend `BufRead` with methods for streaming parsing.
 pub trait BufReadExt: BufRead {
@@ -111,6 +113,95 @@ pub trait BufReadExt: BufRead {
             };
         }
         Ok(read)
+    }
+
+    /// Read all bytes into `buf` until the delimiter `byte` or EOF is reached.
+    ///
+    /// This function will read bytes from the underlying stream until the
+    /// delimiter or EOF is found. Once found, all bytes up to, and including,
+    /// the delimiter (if found) will be appended to `buf`.
+    ///
+    /// Unlike `read_until` after consuming bytes through this method you'll
+    /// have to manually call [`BufRead::consume`].
+    ///
+    /// If successful, this function will return the total number of bytes read.
+    ///
+    /// # Errors
+    ///
+    /// This function will ignore all instances of [`ErrorKind::Interrupted`] and
+    /// will otherwise return any errors returned by [`BufRead::fill_buf`].
+    ///
+    /// If an I/O error is encountered then all bytes read so far will be
+    /// present in `buf` and its length will have been adjusted appropriately.
+    ///
+    /// [`BufRead::consume`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
+    /// [`BufRead::fill_buf`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
+    /// [`ErrorKind::Interrupted`]: https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.Interrupted
+    ///
+    /// # Examples
+    ///
+    /// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+    /// this example, we use [`Cursor`] to read all the bytes in a byte slice
+    /// in hyphen delimited segments:
+    ///
+    /// [`Cursor`]: https://doc.rust-lang.org/std/io/struct.Cursor.html
+    ///
+    /// ```
+    /// use std::io::{self, BufRead};
+    /// use omnom::prelude::*;
+    ///
+    /// let mut cursor = io::Cursor::new(b"lorem-ipsum");
+    /// let mut buf = vec![];
+    ///
+    /// // cursor is at 'l'
+    /// let num_bytes = cursor.try_read_until(b'-', &mut buf)
+    ///     .expect("reading from cursor won't fail");
+    /// assert_eq!(buf, b"lorem-");
+    /// assert_eq!(num_bytes, 6);
+    /// cursor.consume(num_bytes);
+    /// buf.clear();
+    ///
+    /// // cursor is at 'i'
+    /// let num_bytes = cursor.try_read_until(b'-', &mut buf)
+    ///     .expect("reading from cursor won't fail");
+    /// assert_eq!(buf, b"ipsum");
+    /// assert_eq!(num_bytes, 5);
+    /// cursor.consume(num_bytes);
+    /// buf.clear();
+    ///
+    /// // cursor is at EOF
+    /// let num_bytes = cursor.try_read_until(b'-', &mut buf)
+    ///     .expect("reading from cursor won't fail");
+    /// assert_eq!(num_bytes, 0);
+    /// assert_eq!(buf, b"");
+    /// ```
+    fn try_read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> io::Result<usize> {
+        let mut read = 0;
+        loop {
+            let available = match self.fill_buf() {
+                Ok(n) => n,
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+
+            let available = &available[read..];
+
+            let (done, used) = match memchr::memchr(byte, available) {
+                Some(i) => {
+                    buf.extend_from_slice(&available[..=i]);
+                    (true, i + 1)
+                }
+                None => {
+                    buf.extend_from_slice(available);
+                    (false, available.len())
+                }
+            };
+
+            read += used;
+            if done || used == 0 {
+                return Ok(read);
+            }
+        }
     }
 }
 

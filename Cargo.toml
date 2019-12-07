@@ -12,5 +12,6 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
+memchr = "2.2.1"
 
 [dev-dependencies]
