@@ -1,21 +1,22 @@
 use std::io::{self, Read};
+use std::mem;
 
-/// Trait to enable writing bytes to a writer.
-pub trait ReadBytes {
+/// Trait to enable writing bytes to a reader.
+pub trait ReadBytes: Sized {
     /// Read bytes from a reader as big endian.
     ///
     /// Returns the amount of bytes read.
-    fn read_be_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize>;
+    fn read_be_bytes<R: Read>(reader: &mut R) -> io::Result<Self>;
 
     /// Read bytes from a reader as little endian.
     ///
     /// Returns the amount of bytes read.
-    fn read_le_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize>;
+    fn read_le_bytes<R: Read>(reader: &mut R) -> io::Result<Self>;
 
     /// Read bytes from a reader using native endianness.
     ///
     /// Returns the amount of bytes read.
-    fn read_ne_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize>;
+    fn read_ne_bytes<R: Read>(reader: &mut R) -> io::Result<Self>;
 }
 
 macro_rules! doc_comment {
@@ -34,19 +35,22 @@ macro_rules! read_bytes_impl {
 # Examples
 
 ```
-use std::io::Cursor;
+use std::io::{Cursor, Seek, SeekFrom};
 use omnom::prelude::*;
 
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.read_be_bytes(num).unwrap();
+buf.write_be_bytes(num).unwrap();
+
+buf.seek(SeekFrom::Start(0)).unwrap();
+let num: ", stringify!($SelfT), " = buf.read_be_bytes().unwrap();
+assert_eq!(num, 12);
 ```"),
-            fn read_be_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize> {
-                let b = &self.to_be_bytes();
-                let len = b.len();
-                writer.read_all(b)?;
-                Ok(len)
+            fn read_be_bytes<R: Read>(reader: &mut R) -> io::Result<Self> {
+                let mut buf = [0; mem::size_of::<$SelfT>()];
+                reader.read_exact(&mut buf)?;
+                Ok(<$SelfT>::from_be_bytes(buf))
             }
         }
 
@@ -56,19 +60,22 @@ buf.read_be_bytes(num).unwrap();
 # Examples
 
 ```
-use std::io::Cursor;
+use std::io::{Cursor, Seek, SeekFrom};
 use omnom::prelude::*;
 
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.read_le_bytes(num).unwrap();
+buf.write_le_bytes(num).unwrap();
+
+buf.seek(SeekFrom::Start(0)).unwrap();
+let num: ", stringify!($SelfT), " = buf.read_le_bytes().unwrap();
+assert_eq!(num, 12);
 ```"),
-            fn read_le_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize> {
-                let b = &self.to_le_bytes();
-                let len = b.len();
-                writer.read_all(b)?;
-                Ok(len)
+            fn read_le_bytes<R: Read>(reader: &mut R) -> io::Result<Self> {
+                let mut buf = [0; mem::size_of::<$SelfT>()];
+                reader.read_exact(&mut buf)?;
+                Ok(<$SelfT>::from_le_bytes(buf))
             }
         }
 
@@ -85,23 +92,27 @@ appropriate instead.
 # Examples
 
 ```
-use std::io::Cursor;
+use std::io::{Cursor, Seek, SeekFrom};
 use omnom::prelude::*;
 
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.read_ne_bytes(num).unwrap();
+buf.write_ne_bytes(num).unwrap();
+
+buf.seek(SeekFrom::Start(0)).unwrap();
+let num: ", stringify!($SelfT), " = buf.read_ne_bytes().unwrap();
+assert_eq!(num, 12);
 ```"),
-            fn read_ne_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize> {
-                let b = &self.to_ne_bytes();
-                let len = b.len();
-                writer.read_all(b)?;
-                Ok(len)
+            fn read_ne_bytes<R: Read>(reader: &mut R) -> io::Result<Self> {
+                let mut buf = [0; mem::size_of::<$SelfT>()];
+                reader.read_exact(&mut buf)?;
+                Ok(<$SelfT>::from_ne_bytes(buf))
             }
         }
     }
 )*}}
 
-read_bytes_impl!(u8, u16, u32, u64, u128, usize);
-read_bytes_impl!(i8, i16, i32, i64, i128, isize);
+read_bytes_impl!(u8);
+// read_bytes_impl!(u8, u16, u32, u64, u128, usize);
+// read_bytes_impl!(i8, i16, i32, i64, i128, isize);

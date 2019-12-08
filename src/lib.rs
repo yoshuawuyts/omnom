@@ -91,6 +91,8 @@ pub use write_ext::WriteExt;
 /// The `omnom` prelude.
 pub mod prelude {
     pub use crate::BufReadExt;
+    pub use crate::ReadExt;
+    pub use crate::ReadBytes;
     pub use crate::WriteBytes;
     pub use crate::WriteExt;
 }
