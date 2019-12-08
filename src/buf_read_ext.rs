@@ -370,6 +370,75 @@ pub trait BufReadExt: BufRead {
         Ok(read)
     }
 
+    /// Skip bytes until the delimiter `byte` or EOF is reached.
+    ///
+    /// This function will read bytes from the underlying stream until the
+    /// delimiter or EOF is found. Once found, all bytes up to, and including,
+    /// the delimiter (if found) will be skipped.
+    ///
+    /// If successful, this function will return the total number of bytes read.
+    ///
+    /// # Errors
+    ///
+    /// This function will ignore all instances of [`ErrorKind::Interrupted`] and
+    /// will otherwise return any errors returned by [`BufRead::fill_buf`].
+    ///
+    /// If an I/O error is encountered then all bytes read so far will be
+    /// present in `buf` and its length will have been adjusted appropriately.
+    ///
+    /// [`BufRead::consume`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
+    /// [`BufRead::fill_buf`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
+    /// [`ErrorKind::Interrupted`]: https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.Interrupted
+    ///
+    /// # Examples
+    ///
+    /// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+    /// this example, we use [`Cursor`] to read all the bytes in a byte slice
+    /// in hyphen delimited segments:
+    ///
+    /// [`Cursor`]: https://doc.rust-lang.org/std/io/struct.Cursor.html
+    ///
+    /// ```
+    /// use std::io::{self, BufRead};
+    /// use omnom::prelude::*;
+    ///
+    /// let mut cursor = io::Cursor::new(b"lorem-ipsum");
+    ///
+    /// // skip up to and including '-'
+    /// let num_bytes = cursor.skip_until(b'-').unwrap();
+    /// assert_eq!(num_bytes, 6);
+    ///
+    /// // read the rest of the bytes
+    /// let mut buf = [0; 5];
+    /// cursor.fill_exact(&mut buf).unwrap();
+    /// assert_eq!(&buf, b"ipsum");
+    /// ```
+    fn skip_until(&mut self, byte: u8) -> io::Result<usize> {
+        let mut read = 0;
+        loop {
+            let available = match self.fill_buf() {
+                Ok(b) => b,
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+
+            if available.len() == 0 {
+                break;
+            }
+
+            if available[0] == byte {
+                self.consume(1);
+                read += 1;
+                break;
+            } else {
+                self.consume(1);
+                read += 1;
+            }
+        }
+
+        Ok(read)
+    }
+
     /// Fill bytes as big endian.
     fn fill_be<B: ReadBytes>(&mut self) -> io::Result<B> where Self: Sized {
         <B>::fill_be_bytes(self)
