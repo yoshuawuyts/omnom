@@ -440,17 +440,26 @@ pub trait BufReadExt: BufRead {
     }
 
     /// Fill bytes as big endian.
-    fn fill_be<B: ReadBytes>(&mut self) -> io::Result<B> where Self: Sized {
+    fn fill_be<B: ReadBytes>(&mut self) -> io::Result<B>
+    where
+        Self: Sized,
+    {
         <B>::fill_be_bytes(self)
     }
 
     /// Fill bytes as little endian.
-    fn fill_le<B: ReadBytes>(&mut self) -> io::Result<B> where Self: Sized {
+    fn fill_le<B: ReadBytes>(&mut self) -> io::Result<B>
+    where
+        Self: Sized,
+    {
         <B>::fill_le_bytes(self)
     }
 
     /// Fill bytes using native endianness.
-    fn fill_ne<B: ReadBytes>(&mut self) -> io::Result<B> where Self: Sized {
+    fn fill_ne<B: ReadBytes>(&mut self) -> io::Result<B>
+    where
+        Self: Sized,
+    {
         <B>::fill_ne_bytes(self)
     }
 }
