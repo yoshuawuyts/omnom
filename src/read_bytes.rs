@@ -41,10 +41,10 @@ use omnom::prelude::*;
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.write_be_bytes(num).unwrap();
+buf.write_be(num).unwrap();
 
 buf.seek(SeekFrom::Start(0)).unwrap();
-let num: ", stringify!($SelfT), " = buf.read_be_bytes().unwrap();
+let num: ", stringify!($SelfT), " = buf.read_be().unwrap();
 assert_eq!(num, 12);
 ```"),
             fn read_be_bytes<R: Read>(reader: &mut R) -> io::Result<Self> {
@@ -66,10 +66,10 @@ use omnom::prelude::*;
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.write_le_bytes(num).unwrap();
+buf.write_le(num).unwrap();
 
 buf.seek(SeekFrom::Start(0)).unwrap();
-let num: ", stringify!($SelfT), " = buf.read_le_bytes().unwrap();
+let num: ", stringify!($SelfT), " = buf.read_le().unwrap();
 assert_eq!(num, 12);
 ```"),
             fn read_le_bytes<R: Read>(reader: &mut R) -> io::Result<Self> {
@@ -98,10 +98,10 @@ use omnom::prelude::*;
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.write_ne_bytes(num).unwrap();
+buf.write_ne(num).unwrap();
 
 buf.seek(SeekFrom::Start(0)).unwrap();
-let num: ", stringify!($SelfT), " = buf.read_ne_bytes().unwrap();
+let num: ", stringify!($SelfT), " = buf.read_ne().unwrap();
 assert_eq!(num, 12);
 ```"),
             fn read_ne_bytes<R: Read>(reader: &mut R) -> io::Result<Self> {

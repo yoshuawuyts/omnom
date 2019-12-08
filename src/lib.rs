@@ -43,9 +43,9 @@
 //! [`ReadExt::read_be_bytes`]: trait.ReadExt.html#method.read_be_bytes
 //! [`ReadExt::read_le_bytes`]: trait.ReadExt.html#method.read_le_bytes
 //! [`ReadExt::read_ne_bytes`]: trait.ReadExt.html#method.read_ne_bytes
-//! [`WriteExt::write_be_bytes`]: trait.WriteExt.html#method.write_be_bytes
-//! [`WriteExt::write_le_bytes`]: trait.WriteExt.html#method.write_le_bytes
-//! [`WriteExt::write_ne_bytes`]: trait.WriteExt.html#method.write_ne_bytes
+//! [`WriteExt::write_be`]: trait.WriteExt.html#method.write_be
+//! [`WriteExt::write_le`]: trait.WriteExt.html#method.write_le
+//! [`WriteExt::write_ne`]: trait.WriteExt.html#method.write_ne
 //!
 //! # Todos
 //!
@@ -106,9 +106,9 @@
 #![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
 
 mod buf_read_ext;
-mod write_bytes;
 mod read_bytes;
 mod read_ext;
+mod write_bytes;
 mod write_ext;
 
 pub use buf_read_ext::BufReadExt;
@@ -120,8 +120,8 @@ pub use write_ext::WriteExt;
 /// The `omnom` prelude.
 pub mod prelude {
     pub use crate::BufReadExt;
-    pub use crate::ReadExt;
     pub use crate::ReadBytes;
+    pub use crate::ReadExt;
     pub use crate::WriteBytes;
     pub use crate::WriteExt;
 }
