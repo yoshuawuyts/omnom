@@ -55,7 +55,13 @@ fn parse_mime(s: &str) -> Option<Mime> {
     let mut sub_type = vec![];
     match s.read_until(b';', &mut sub_type).unwrap() {
         0 => return None,
-        _ => sub_type.pop(),
+        n => {
+            if sub_type[n - 1] == b';' {
+                sub_type.pop()
+            } else {
+                None
+            }
+        }
     };
     validate_code_points(&sub_type)?;
 
