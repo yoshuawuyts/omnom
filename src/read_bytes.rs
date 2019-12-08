@@ -1,44 +1,107 @@
-use std::io::{self, Write};
+use std::io::{self, Read};
 
 /// Trait to enable writing bytes to a writer.
-pub trait WriteBytes {
-    /// Write bytes to a writer as big endian.
-    fn write_be_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize>;
+pub trait ReadBytes {
+    /// Read bytes from a reader as big endian.
+    ///
+    /// Returns the amount of bytes read.
+    fn read_be_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize>;
 
-    /// Write bytes to a writer as little endian.
-    fn write_le_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize>;
+    /// Read bytes from a reader as little endian.
+    ///
+    /// Returns the amount of bytes read.
+    fn read_le_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize>;
 
-    /// Write bytes to a writer using native endianness.
-    fn write_ne_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize>;
+    /// Read bytes from a reader using native endianness.
+    ///
+    /// Returns the amount of bytes read.
+    fn read_ne_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize>;
 }
 
-impl WriteBytes for u8 {
-    fn write_be_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize> {
-        writer.write_all([self])
-    }
-
-    fn write_le_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize> {
-        writer.write_all([self])
-    }
-
-    fn write_ne_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize> {
-        writer.write_all([self])
-    }
+macro_rules! doc_comment {
+    ($x:expr, $($tt:tt)*) => {
+        #[doc = $x]
+        $($tt)*
+    };
 }
 
-pub trait WriteExt: Write {
-    /// Write bytes as big endian.
-    fn write_be_bytes<B: WriteBytes>(&mut self, num: B) -> io::Result<usize> {
-        num.write_be_bytes(self)
-    }
+macro_rules! read_bytes_impl {
+    ($($SelfT:ty),* $(,)?) => { $(
+        impl ReadBytes for $SelfT {
+        doc_comment! {
+            concat!("Read bytes from a reader as big endian.
 
-    /// Write bytes as little endian.
-    fn write_le_bytes<B: WriteBytes>(&mut self, num: B) -> io::Result<usize> {
-        num.write_le_bytes(self)
-    }
+# Examples
 
-    /// Write bytes using native endianness.
-    fn write_ne_bytes<B: WriteBytes>(&mut self, num: B) -> io::Result<usize> {
-        num.write_ne_bytes(self)
+```
+use std::io::Cursor;
+use omnom::prelude::*;
+
+let mut buf = Cursor::new(vec![0; 15]);
+
+let num = 12_", stringify!($SelfT), ";
+buf.read_be_bytes(num).unwrap();
+```"),
+            fn read_be_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize> {
+                let b = &self.to_be_bytes();
+                let len = b.len();
+                writer.read_all(b)?;
+                Ok(len)
+            }
+        }
+
+        doc_comment! {
+            concat!("Read bytes from a reader as little endian.
+
+# Examples
+
+```
+use std::io::Cursor;
+use omnom::prelude::*;
+
+let mut buf = Cursor::new(vec![0; 15]);
+
+let num = 12_", stringify!($SelfT), ";
+buf.read_le_bytes(num).unwrap();
+```"),
+            fn read_le_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize> {
+                let b = &self.to_le_bytes();
+                let len = b.len();
+                writer.read_all(b)?;
+                Ok(len)
+            }
+        }
+
+        doc_comment! {
+            concat!("Read bytes from a reader using native endianness.
+
+As the target platform's native endianness is used, portable code
+likely wants to use [`read_be_bytes`] or [`read_le_bytes`], as
+appropriate instead.
+
+[`read_be_bytes`]: #method.read_be_bytes
+[`read_le_bytes`]: #method.read_le_bytes
+
+# Examples
+
+```
+use std::io::Cursor;
+use omnom::prelude::*;
+
+let mut buf = Cursor::new(vec![0; 15]);
+
+let num = 12_", stringify!($SelfT), ";
+buf.read_ne_bytes(num).unwrap();
+```"),
+            fn read_ne_bytes<R: Read>(&self, reader: &mut R) -> io::Result<usize> {
+                let b = &self.to_ne_bytes();
+                let len = b.len();
+                writer.read_all(b)?;
+                Ok(len)
+            }
+        }
     }
-}
+)*}}
+
+read_bytes_impl!(u8, u16, u32, u64, u128, usize);
+read_bytes_impl!(i8, i16, i32, i64, i128, isize);

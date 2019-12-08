@@ -28,7 +28,7 @@
 //! - [`BufReadExt::fill_until`] reads bytes until a byte has been encountered, doesn't consume bytes.
 //! - [`BufReadExt::fill_while`] reads bytes based on a predicate, doesn't consume bytes.
 //! - [`BufReadExt::read_while`] reads bytes based on a predicate, consumes bytes.
-//! - [`WriteExt::read_be_bytes`] reads bytes 
+//! - [`WriteExt::read_be_bytes`] reads bytes
 //!
 //! [`consume`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
 //! [`BufReadExt::fill_exact`]: trait.BufReadExt.html#method.fill_exact
@@ -78,9 +78,13 @@
 
 mod buf_read_ext;
 mod write_bytes;
+mod read_bytes;
+mod read_ext;
 mod write_ext;
 
 pub use buf_read_ext::BufReadExt;
+pub use read_bytes::ReadBytes;
+pub use read_ext::ReadExt;
 pub use write_bytes::WriteBytes;
 pub use write_ext::WriteExt;
 

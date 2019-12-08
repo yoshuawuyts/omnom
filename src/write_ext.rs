@@ -1,7 +1,7 @@
 use crate::WriteBytes;
 use std::io::{self, Write};
 
-/// Extension trait to `Write` to read and write bytes from.
+/// Extension trait to `Write` to write bytes using endianness.
 pub trait WriteExt: Write + Sized {
     /// Write bytes as big endian.
     ///

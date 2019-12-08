@@ -76,7 +76,7 @@ buf.write_le_bytes(num).unwrap();
             concat!("Write bytes to a writer using native endianness.
 
 As the target platform's native endianness is used, portable code
-likely wants to use [`from_be_bytes`] or [`from_le_bytes`], as
+likely wants to use [`write_be_bytes`] or [`write_le_bytes`], as
 appropriate instead.
 
 [`write_be_bytes`]: #method.write_be_bytes
