@@ -44,9 +44,7 @@ fn parse_mime(s: &str) -> Option<Mime> {
         0 => return None,
         _ => base_type.pop(),
     };
-    if !validate_code_points(&base_type) {
-        return None;
-    }
+    validate_code_points(&base_type)?;
 
     // parse the "subtype"
     //
@@ -59,9 +57,7 @@ fn parse_mime(s: &str) -> Option<Mime> {
         0 => return None,
         _ => sub_type.pop(),
     };
-    if !validate_code_points(&sub_type) {
-        return None;
-    }
+    validate_code_points(&sub_type)?;
 
     // instantiate our mime struct
     let mut mime = Mime {
@@ -88,7 +84,7 @@ fn parse_mime(s: &str) -> Option<Mime> {
         // text/html; charset=utf-8;
         //           ^
         // ```
-        s.skip_while(is_http_whitespace_char).unwrap();
+        s.skip_while(is_http_whitespace_char).ok()?;
 
         // Get the param name.
         //
@@ -98,12 +94,10 @@ fn parse_mime(s: &str) -> Option<Mime> {
         // ```
         let mut param_name = vec![];
         s.read_while(&mut param_name, |b| b != b';' && b != b'=')
-            .unwrap();
-        let mut param_name = String::from_utf8(param_name).unwrap();
+            .ok()?;
+        validate_code_points(&param_name)?;
+        let mut param_name = String::from_utf8(param_name).ok()?;
         param_name.make_ascii_lowercase();
-        if !validate_code_points(&param_name.as_bytes()) {
-            return None;
-        }
 
         // Ignore param names without values.
         //
@@ -124,51 +118,40 @@ fn parse_mime(s: &str) -> Option<Mime> {
         //                    ^^^^^^
         // ```
         let mut param_value = vec![];
-        match s.read_until(b';', &mut param_value).unwrap() {
+        match s.read_until(b';', &mut param_value).ok()? {
             0 => return None,
             _ => param_value.pop(),
         };
-        let mut param_value = String::from_utf8(param_value).unwrap();
+        validate_code_points(&param_value)?;
+        let mut param_value = String::from_utf8(param_value).ok()?;
         param_value.make_ascii_lowercase();
-        if !validate_code_points(&param_value.as_bytes()) {
-            return None;
-        }
 
         // Insert attribute pair into hashmap.
         if let None = mime.parameters {
             mime.parameters = Some(HashMap::new());
         }
-        mime.parameters
-            .as_mut()
-            .unwrap()
-            .insert(param_name, param_value);
+        mime.parameters.as_mut()?.insert(param_name, param_value);
     }
 
     Some(mime)
 }
 
-fn validate_code_points(buf: &[u8]) -> bool {
-    buf.iter().all(|b| match b {
-        b'-'
-        | b'!'
-        | b'#'
-        | b'$'
-        | b'%'
-        | b'&'
-        | b'\''
-        | b'*'
-        | b'+'
-        | b'.'
-        | b'^'
-        | b'_'
-        | b'`'
-        | b'|'
-        | b'~'
-        | b'A'..=b'Z'
-        | b'a'..=b'z'
-        | b'0'..=b'9' => true,
+fn validate_code_points(buf: &[u8]) -> Option<()> {
+    let all = buf.iter().all(|b| match b {
+        b'-' | b'!' | b'#' | b'$' | b'%' => true,
+        b'&' | b'\'' | b'*' | b'+' | b'.' => true,
+        b'^' | b'_' | b'`' | b'|' | b'~' => true,
+        b'A'..=b'Z' => true,
+        b'a'..=b'z' => true,
+        b'0'..=b'9' => true,
         _ => false,
-    })
+    });
+
+    if all {
+        Some(())
+    } else {
+        None
+    }
 }
 
 fn is_http_whitespace_char(b: u8) -> bool {
