@@ -1,6 +1,8 @@
 use std::io::{self, BufRead, ErrorKind, Read};
 use std::slice;
 
+use crate::ReadBytes;
+
 /// Extend `BufRead` with methods for streaming parsing.
 pub trait BufReadExt: BufRead {
     /// Read bytes based on a predicate.
@@ -366,6 +368,21 @@ pub trait BufReadExt: BufRead {
         }
 
         Ok(read)
+    }
+
+    /// Fill bytes as big endian.
+    fn fill_be<B: ReadBytes>(&mut self) -> io::Result<B> {
+        <B>::fill_be_bytes(self)
+    }
+
+    /// Fill bytes as little endian.
+    fn fill_le<B: ReadBytes>(&mut self) -> io::Result<B> {
+        <B>::fill_le_bytes(self)
+    }
+
+    /// Fill bytes using native endianness.
+    fn fill_ne<B: ReadBytes>(&mut self) -> io::Result<B> {
+        <B>::fill_ne_bytes(self)
     }
 }
 
