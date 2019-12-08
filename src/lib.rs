@@ -62,10 +62,10 @@
 //! let mut buf = Cursor::new(vec![0; 15]);
 //!
 //! let num = 12_u16;
-//! buf.write_le_bytes(num).unwrap();
+//! buf.write_le(num).unwrap();
 //!
 //! buf.seek(SeekFrom::Start(0)).unwrap();
-//! let num: u16 = buf.read_le_bytes().unwrap();
+//! let num: u16 = buf.read_le().unwrap();
 //! assert_eq!(num, 12);
 //! ```
 //!

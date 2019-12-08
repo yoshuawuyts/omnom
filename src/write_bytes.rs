@@ -40,7 +40,7 @@ use omnom::prelude::*;
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.write_be_bytes(num).unwrap();
+buf.write_be(num).unwrap();
 ```"),
             fn write_be_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize> {
                 let b = &self.to_be_bytes();
@@ -62,7 +62,7 @@ use omnom::prelude::*;
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.write_le_bytes(num).unwrap();
+buf.write_le(num).unwrap();
 ```"),
             fn write_le_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize> {
                 let b = &self.to_le_bytes();
@@ -91,7 +91,7 @@ use omnom::prelude::*;
 let mut buf = Cursor::new(vec![0; 15]);
 
 let num = 12_", stringify!($SelfT), ";
-buf.write_ne_bytes(num).unwrap();
+buf.write_ne(num).unwrap();
 ```"),
             fn write_ne_bytes<W: Write>(&self, writer: &mut W) -> io::Result<usize> {
                 let b = &self.to_ne_bytes();
