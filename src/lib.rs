@@ -61,11 +61,11 @@
 //!
 //! let mut buf = Cursor::new(vec![0; 15]);
 //!
-//! let num = 12_u8;
+//! let num = 12_u16;
 //! buf.write_le_bytes(num).unwrap();
 //!
 //! buf.seek(SeekFrom::Start(0)).unwrap();
-//! let num: u8 = buf.read_le_bytes().unwrap();
+//! let num: u16 = buf.read_le_bytes().unwrap();
 //! assert_eq!(num, 12);
 //! ```
 //!

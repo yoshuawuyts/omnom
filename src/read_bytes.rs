@@ -113,6 +113,5 @@ assert_eq!(num, 12);
     }
 )*}}
 
-read_bytes_impl!(u8);
-// read_bytes_impl!(u8, u16, u32, u64, u128, usize);
-// read_bytes_impl!(i8, i16, i32, i64, i128, isize);
+read_bytes_impl!(u8, u16, u32, u64, u128, usize);
+read_bytes_impl!(i8, i16, i32, i64, i128, isize);
