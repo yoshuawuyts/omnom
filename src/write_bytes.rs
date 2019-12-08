@@ -26,7 +26,7 @@ macro_rules! doc_comment {
 }
 
 macro_rules! write_bytes_impl {
-    ($SelfT:ty) => {
+    ($($SelfT:ty),* $(,)?) => { $(
         impl WriteBytes for $SelfT {
         doc_comment! {
             concat!("Write bytes to a writer as big endian.
@@ -100,20 +100,8 @@ buf.write_ne_bytes(num).unwrap();
                 Ok(len)
             }
         }
-    }}
-}
+    }
+)*}}
 
-write_bytes_impl!(u8);
-write_bytes_impl!(u16);
-write_bytes_impl!(u32);
-write_bytes_impl!(u64);
-write_bytes_impl!(u128);
-write_bytes_impl!(i8);
-write_bytes_impl!(i16);
-write_bytes_impl!(i32);
-write_bytes_impl!(i64);
-write_bytes_impl!(i128);
-write_bytes_impl!(usize);
-write_bytes_impl!(isize);
-// write_bytes_impl!(f32);
-// write_bytes_impl!(f64);
+write_bytes_impl!(u8, u16, u32, u64, u128, usize);
+write_bytes_impl!(i8, i16, i32, i64, i128, isize);
