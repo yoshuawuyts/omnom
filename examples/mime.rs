@@ -53,16 +53,10 @@ fn parse_mime(s: &str) -> Option<Mime> {
     //      ^^^^^
     // ```
     let mut sub_type = vec![];
-    match s.read_until(b';', &mut sub_type).unwrap() {
-        0 => return None,
-        n => {
-            if sub_type[n - 1] == b';' {
-                sub_type.pop()
-            } else {
-                None
-            }
-        }
-    };
+    s.read_until(b';', &mut sub_type).unwrap();
+    if let Some(b';') = sub_type.last() {
+        sub_type.pop();
+    }
     validate_code_points(&sub_type)?;
 
     // instantiate our mime struct
@@ -124,10 +118,10 @@ fn parse_mime(s: &str) -> Option<Mime> {
         //                    ^^^^^^
         // ```
         let mut param_value = vec![];
-        match s.read_until(b';', &mut param_value).ok()? {
-            0 => return None,
-            _ => param_value.pop(),
-        };
+        s.read_until(b';', &mut param_value).ok()?;
+        if let Some(b';') = param_value.last() {
+            param_value.pop();
+        }
         validate_code_points(&param_value)?;
         let mut param_value = String::from_utf8(param_value).ok()?;
         param_value.make_ascii_lowercase();
