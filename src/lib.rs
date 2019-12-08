@@ -28,9 +28,12 @@
 //! - [`BufReadExt::fill_until`] reads bytes until a byte has been encountered, doesn't consume bytes.
 //! - [`BufReadExt::fill_while`] reads bytes based on a predicate, doesn't consume bytes.
 //! - [`BufReadExt::read_while`] reads bytes based on a predicate, consumes bytes.
-//! - [`ReadExt::read_be`] reads bytes as big-endian from a reader.
-//! - [`ReadExt::read_le`] reads bytes as little-endian from a reader.
-//! - [`ReadExt::read_ne`] reads bytes using native endianness from a reader.
+//! - [`ReadExt::read_be`] reads bytes as big-endian from a reader, consumes bytes.
+//! - [`ReadExt::read_le`] reads bytes as little-endian from a reader, consumes bytes.
+//! - [`ReadExt::read_ne`] reads bytes using native endianness from a reader, consumes bytes.
+//! - [`BufReadExt::fill_be`] reads bytes as big-endian from a reader, doesn't consume bytes.
+//! - [`BufReadExt::fill_le`] reads bytes as little-endian from a reader, doesn't consume bytes.
+//! - [`BufReadExt::fill_ne`] reads bytes using native endianness from a reader, doesn't consume bytes.
 //! - [`WriteExt::write_be`] write bytes as big-endian to a writer.
 //! - [`WriteExt::write_le`] write bytes as little-endian to a writer.
 //! - [`WriteExt::write_ne`] write bytes using native endianness to a writer.
@@ -43,6 +46,9 @@
 //! [`ReadExt::read_be`]: trait.ReadExt.html#method.read_be
 //! [`ReadExt::read_le`]: trait.ReadExt.html#method.read_le
 //! [`ReadExt::read_ne`]: trait.ReadExt.html#method.read_ne
+//! [`BufReadExt::fill_be`]: trait.BufReadExt.html#method.fill_be
+//! [`BufReadExt::fill_le`]: trait.BufReadExt.html#method.fill_le
+//! [`BufReadExt::fill_ne`]: trait.BufReadExt.html#method.fill_ne
 //! [`WriteExt::write_be`]: trait.WriteExt.html#method.write_be
 //! [`WriteExt::write_le`]: trait.WriteExt.html#method.write_le
 //! [`WriteExt::write_ne`]: trait.WriteExt.html#method.write_ne
