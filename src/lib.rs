@@ -28,21 +28,21 @@
 //! - [`BufReadExt::fill_until`] reads bytes until a byte has been encountered, doesn't consume bytes.
 //! - [`BufReadExt::fill_while`] reads bytes based on a predicate, doesn't consume bytes.
 //! - [`BufReadExt::read_while`] reads bytes based on a predicate, consumes bytes.
-//! - [`ReadExt::read_be_bytes`] reads bytes as big-endian from a reader.
-//! - [`ReadExt::read_le_bytes`] reads bytes as little-endian from a reader.
-//! - [`ReadExt::read_ne_bytes`] reads bytes using native endianness from a reader.
-//! - [`WriteExt::write_be_bytes`] write bytes as big-endian to a writer.
-//! - [`WriteExt::write_le_bytes`] write bytes as little-endian to a writer.
-//! - [`WriteExt::write_ne_bytes`] write bytes using native endianness to a writer.
+//! - [`ReadExt::read_be`] reads bytes as big-endian from a reader.
+//! - [`ReadExt::read_le`] reads bytes as little-endian from a reader.
+//! - [`ReadExt::read_ne`] reads bytes using native endianness from a reader.
+//! - [`WriteExt::write_be`] write bytes as big-endian to a writer.
+//! - [`WriteExt::write_le`] write bytes as little-endian to a writer.
+//! - [`WriteExt::write_ne`] write bytes using native endianness to a writer.
 //!
 //! [`consume`]: https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume
 //! [`BufReadExt::fill_exact`]: trait.BufReadExt.html#method.fill_exact
 //! [`BufReadExt::fill_until`]: trait.BufReadExt.html#method.fill_until
 //! [`BufReadExt::fill_while`]: trait.BufReadExt.html#method.fill_while
 //! [`BufReadExt::read_while`]: trait.BufReadExt.html#method.read_while
-//! [`ReadExt::read_be_bytes`]: trait.ReadExt.html#method.read_be_bytes
-//! [`ReadExt::read_le_bytes`]: trait.ReadExt.html#method.read_le_bytes
-//! [`ReadExt::read_ne_bytes`]: trait.ReadExt.html#method.read_ne_bytes
+//! [`ReadExt::read_be`]: trait.ReadExt.html#method.read_be
+//! [`ReadExt::read_le`]: trait.ReadExt.html#method.read_le
+//! [`ReadExt::read_ne`]: trait.ReadExt.html#method.read_ne
 //! [`WriteExt::write_be`]: trait.WriteExt.html#method.write_be
 //! [`WriteExt::write_le`]: trait.WriteExt.html#method.write_le
 //! [`WriteExt::write_ne`]: trait.WriteExt.html#method.write_ne
