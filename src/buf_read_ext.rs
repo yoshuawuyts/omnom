@@ -43,6 +43,7 @@ pub trait BufReadExt: BufRead {
         P: FnMut(u8) -> bool,
     {
         let mut read = 0;
+        let mut inner_read = 0;
 
         'outer: loop {
             let available = match self.fill_buf() {
@@ -53,7 +54,6 @@ pub trait BufReadExt: BufRead {
                     return Err(e);
                 }
             };
-
             if available.len() == 0 {
                 break;
             }
@@ -62,14 +62,17 @@ pub trait BufReadExt: BufRead {
                 let byte = byte?;
                 if predicate(byte) {
                     buf.extend_from_slice(&[byte]);
+                    inner_read += 1;
                     read += 1;
                 } else {
                     break 'outer;
                 }
             }
+            self.consume(inner_read);
+            inner_read = 0;
         }
+        self.consume(inner_read);
 
-        self.consume(read);
         Ok(read)
     }
 
