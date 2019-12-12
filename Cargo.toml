@@ -1,6 +1,6 @@
 [package]
 name = "omnom"
-version = "2.1.2"
+version = "3.0.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/yoshuawuyts/omnom"
 documentation = "https://docs.rs/omnom"
